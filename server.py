@@ -17,10 +17,12 @@ addrs   = [None] * 4
 names   = [None] * 4
 qtd_clients = 0
 
-def broadcast(request, sender):
+def broadcast(request, sender, sender_bool=True):
     print(request.decode("utf-8"))
     for client in clients:
-        if(client != None and client != sender):
+        if client != None and client != sender:
+            client.send(request)
+        if client == sender and sender_bool == True:
             client.send(request)
 
 def handle_client(client_socket):
@@ -32,19 +34,19 @@ def handle_client(client_socket):
         if request is not None and request:
             for i in range(4):
                 if clients[i] == client_socket:
-                    message = names[i].decode("utf-8") + ": " + request.decode("utf-8")
+                    message = names[i].decode("utf-8") + ": " + request.decode("utf-8") + "\n"
                     broadcast(message.encode("utf-8"), client_socket)
 
 def handle_asker(client_socket, qtd_clients):
-    req_message = "Identifique-se:"
+    req_message = "Identifique-se:\n"
     client_socket.send(req_message.encode("utf-8"))
     res = client_socket.recv(1024)
     while res is None:
         res = client_socket.recv(1024)
     names[qtd_clients] = res
-    log_entrada = names[qtd_clients].decode("utf-8") +  " acabou de entrar na conversa."
-    broadcast(log_entrada.encode("utf-8"), client_socket)
-    log_entrada = "Agora você está online, " + names[qtd_clients].decode("utf-8") + "."
+    log_entrada = names[qtd_clients].decode("utf-8") +  " entrou na conversa.\n"
+    broadcast(log_entrada.encode("utf-8"), client_socket, False)
+    log_entrada = names[qtd_clients].decode("utf-8") + "\nBem-vindo, " + names[qtd_clients].decode("utf-8") +  ". Você já está online" + ".\n"
     client_socket.send(log_entrada.encode("utf-8"))
 
 while True: 
@@ -54,7 +56,7 @@ while True:
         name_asker_handler = threading.Thread(target=handle_asker, args=(clients[qtd_clients-1], qtd_clients-1, ), daemon=True)
         name_asker_handler.start()
         while(name_asker_handler.isAlive()):
-            continue     
+            continue
         client_handler = threading.Thread(target=handle_client, args=(clients[qtd_clients-1],), daemon=True)
         client_handler.start()
 
